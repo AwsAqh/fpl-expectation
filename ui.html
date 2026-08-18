@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FPL GW Predictor - Lineup Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
       * {
         box-sizing: border-box;
@@ -11,11 +13,7 @@
         padding: 0;
       }
       body {
-        font-family:
-          "Segoe UI",
-          -apple-system,
-          BlinkMacSystemFont,
-          sans-serif;
+        font-family: 'Rajdhani', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
         background: #0a0a1a;
         color: #e0e0e0;
         min-height: 100vh;
@@ -203,36 +201,92 @@
       .pitch-container {
         position: relative;
         width: 100%;
-        max-width: 480px;
+        max-width: 560px;
         margin: 0 auto;
-        filter: drop-shadow(0 15px 35px rgba(0, 212, 255, 0.2));
+        filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
       }
       .pitch {
         position: relative;
         width: 100%;
-        padding-bottom: 145%;
-        background: radial-gradient(circle at center, rgba(10, 10, 26, 0.15) 0%, rgba(5, 5, 12, 0.85) 100%), url('stadium_pitch.png') no-repeat center/cover;
-        border: 2px solid rgba(0, 212, 255, 0.35);
-        border-radius: 16px;
+        padding-bottom: 140%;
+        background:
+          repeating-linear-gradient(
+            180deg,
+            rgba(255,255,255,0.04) 0px,
+            rgba(255,255,255,0.04) 1px,
+            transparent 1px,
+            transparent 40px
+          ),
+          linear-gradient(180deg,
+            #3a9e4a 0%,
+            #47b857 14%,
+            #3a9e4a 14%,
+            #3a9e4a 28%,
+            #47b857 28%,
+            #47b857 42%,
+            #3a9e4a 42%,
+            #3a9e4a 56%,
+            #47b857 56%,
+            #47b857 70%,
+            #3a9e4a 70%,
+            #3a9e4a 84%,
+            #47b857 84%,
+            #47b857 100%
+          );
+        border: 3px solid #2d7a39;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 40px rgba(0, 212, 255, 0.15);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.4);
       }
-      .pitch-center-line {
+      /* GW banner inside pitch */
+      .pitch-gw-banner {
         position: absolute;
-        top: 0;
-        bottom: 0;
+        top: 2%;
         left: 50%;
-        width: 1.5px;
-        background: rgba(0, 212, 255, 0.15);
         transform: translateX(-50%);
+        background: linear-gradient(135deg, #1a0a2e 0%, #2d1b5e 100%);
+        color: #fff;
+        font-size: 0.8em;
+        font-weight: 700;
+        padding: 5px 24px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        z-index: 5;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255,255,255,0.15);
+      }
+      .pitch-fpl-logo {
+        position: absolute;
+        top: 2.5%;
+        font-size: 0.62em;
+        font-weight: 700;
+        color: rgba(255,255,255,0.85);
+        z-index: 5;
+        background: rgba(0,0,0,0.25);
+        padding: 3px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.3px;
+      }
+      .pitch-fpl-logo.left  { left: 2%; }
+      .pitch-fpl-logo.right { right: 2%; }
+      /* Pitch markings */
+      .pitch-halfway {
+        position: absolute;
+        top: 50%;
+        left: 3%;
+        right: 3%;
+        height: 2px;
+        background: rgba(255,255,255,0.45);
+        transform: translateY(-50%);
       }
       .pitch-center-circle {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 60px;
-        height: 60px;
-        border: 1.5px solid rgba(0, 212, 255, 0.15);
+        width: 80px;
+        height: 80px;
+        border: 2px solid rgba(255,255,255,0.45);
         border-radius: 50%;
         transform: translate(-50%, -50%);
       }
@@ -242,203 +296,120 @@
         left: 50%;
         width: 6px;
         height: 6px;
-        background: rgba(0, 212, 255, 0.25);
+        background: rgba(255,255,255,0.6);
         border-radius: 50%;
         transform: translate(-50%, -50%);
       }
-      .pitch-goal-area {
-        position: relative;
-        height: 0px;
-      }
-      .pitch-goal {
-        position: absolute;
-        left: 10%;
-        right: 10%;
-        height: 6px;
-        background: #00d4ff33;
-        border: 1.5px solid rgba(0, 212, 255, 0.4);
-        border-radius: 2px;
-      }
-      .pitch-goal.top {
-        top: -2px;
-      }
-      .pitch-goal.bottom {
-        bottom: -2px;
-      }
-      .pitch-goal-net {
-        display: none;
-      }
       .pitch-penalty {
         position: absolute;
-        left: 6%;
-        right: 6%;
-        height: 25%;
-        border: 1.5px solid rgba(0, 212, 255, 0.15);
+        left: 25%;
+        right: 25%;
+        height: 12%;
+        border: 2px solid rgba(255,255,255,0.35);
+        border-top: none;
       }
       .pitch-penalty.top {
         top: 0;
-        border-radius: 0 0 45% 45%;
+        border-top: none;
+        border-bottom-left-radius: 6px;
+        border-bottom-right-radius: 6px;
       }
       .pitch-penalty.bottom {
         bottom: 0;
-        border-radius: 45% 45% 0 0;
+        border-bottom: none;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
       }
+      .pitch-goal {
+        position: absolute;
+        left: 37%;
+        right: 37%;
+        height: 3%;
+        background: rgba(255,255,255,0.25);
+        border: 2px solid rgba(255,255,255,0.5);
+      }
+      .pitch-goal.top    { top: 0; border-top: none; }
+      .pitch-goal.bottom { bottom: 0; border-bottom: none; }
+      /* === Official FPL Player Card === */
       .player-card {
         position: absolute;
-        width: 86px;
-        border-radius: 12px;
-        padding: 8px 4px 6px;
+        width: 90px;
+        border-radius: 8px;
+        padding: 6px 0 0;
         display: flex;
         flex-direction: column;
         align-items: center;
         transform: translate(-50%, -50%);
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         z-index: 2;
-        background: rgba(22, 33, 62, 0.55);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        overflow: hidden;
-      }
-      .player-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        border-radius: 12px 12px 0 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        overflow: visible;
       }
       .player-card:hover {
-        transform: translate(-50%, -50%) scale(1.12);
+        transform: translate(-50%, -50%) scale(1.1);
         z-index: 10;
-        background: rgba(22, 33, 62, 0.75);
-        border-color: rgba(0, 212, 255, 0.4);
       }
-      .player-card .card-pos {
-        font-size: 0.5em;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        margin-bottom: 2px;
-        font-weight: 700;
+      /* Jersey image */
+      .card-jersey {
+        width: 64px;
+        height: 58px;
+        object-fit: contain;
+        display: block;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
       }
-      .player-card .card-name {
-        font-size: 0.72em;
+      .card-jersey-svg {
+        width: 64px;
+        height: 58px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
+      }
+      /* Name bar (dark purple, rounded bottom) */
+      .card-name-bar {
+        background: #1c1240;
+        width: 100%;
+        margin-top: 3px;
+        padding: 4px 3px 3px;
+        text-align: center;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      }
+      .card-name-bar .card-name {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 0.82em;
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 78px;
-        text-align: center;
+        max-width: 84px;
         color: #ffffff;
-        margin-bottom: 1px;
-      }
-      .player-card .card-team {
-        font-size: 0.55em;
-        color: rgba(255, 255, 255, 0.5);
-        margin-bottom: 4px;
-        font-weight: 500;
-      }
-      .card-xp-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 90%;
-        padding: 2px 0;
-        margin: 2px 0;
-        background: rgba(0, 0, 0, 0.25);
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .card-xp-value {
-        font-size: 1.05em;
-        font-weight: 800;
-        line-height: 1;
-      }
-      .card-xp-label {
-        font-size: 0.42em;
+        display: block;
+        letter-spacing: 0.3px;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
-        opacity: 0.5;
-        margin-top: 1px;
+      }
+      .card-name-bar .card-price {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 0.72em;
+        color: rgba(255,255,255,0.8);
         font-weight: 600;
+        display: block;
+        margin-top: 0;
       }
-      .player-card .card-stats {
-        display: flex;
-        gap: 2px;
-        font-size: 0.58em;
-        margin-top: 2px;
-        width: 100%;
-        justify-content: space-around;
-      }
-      .player-card .card-stat {
-        text-align: center;
-        flex: 1;
-      }
-      .player-card .card-stat .val {
+      /* xP badge */
+      .card-xp-badge {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        background: rgba(0,0,0,0.7);
+        color: #ffd93d;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 0.6em;
         font-weight: 700;
-        font-size: 0.85em;
-        line-height: 1.2;
-        color: #ffffff;
+        padding: 1px 4px;
+        border-radius: 4px;
+        line-height: 1.4;
       }
-      .player-card .card-stat .lbl {
-        font-size: 0.7em;
-        color: rgba(255, 255, 255, 0.45);
-        text-transform: uppercase;
-        letter-spacing: 0.2px;
-      }
-      /* Glassmorphism theme settings */
-      .player-gkp {
-        box-shadow: 0 4px 15px rgba(78, 205, 196, 0.15);
-      }
-      .player-gkp::before {
-        background: linear-gradient(90deg, #4ecdc4, #2ea8a0);
-      }
-      .player-def {
-        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.15);
-      }
-      .player-def::before {
-        background: linear-gradient(90deg, #ff6b6b, #e05555);
-      }
-      .player-mid {
-        box-shadow: 0 4px 15px rgba(255, 217, 61, 0.15);
-      }
-      .player-mid::before {
-        background: linear-gradient(90deg, #ffd93d, #e0c030);
-      }
-      .player-fwd {
-        box-shadow: 0 4px 15px rgba(107, 203, 119, 0.15);
-      }
-      .player-fwd::before {
-        background: linear-gradient(90deg, #6bcb77, #55b065);
-      }
-      .player-gkp:hover {
-        box-shadow: 0 8px 25px rgba(78, 205, 196, 0.35);
-        border-color: rgba(78, 205, 196, 0.5);
-      }
-      .player-def:hover {
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.35);
-        border-color: rgba(255, 107, 107, 0.5);
-      }
-      .player-mid:hover {
-        box-shadow: 0 8px 25px rgba(255, 217, 61, 0.35);
-        border-color: rgba(255, 217, 61, 0.5);
-      }
-      .player-fwd:hover {
-        box-shadow: 0 8px 25px rgba(107, 203, 119, 0.35);
-        border-color: rgba(107, 203, 119, 0.5);
-      }
-      .player-gkp .card-pos { color: #4ecdc4; }
-      .player-def .card-pos { color: #ff6b6b; }
-      .player-mid .card-pos { color: #ffd93d; }
-      .player-fwd .card-pos { color: #6bcb77; }
-      .player-gkp .card-xp-value { color: #4ecdc4; text-shadow: 0 0 6px rgba(78, 205, 196, 0.4); }
-      .player-def .card-xp-value { color: #ff6b6b; text-shadow: 0 0 6px rgba(255, 107, 107, 0.4); }
-      .player-mid .card-xp-value { color: #ffd93d; text-shadow: 0 0 6px rgba(255, 217, 61, 0.4); }
-      .player-fwd .card-xp-value { color: #6bcb77; text-shadow: 0 0 6px rgba(107, 203, 119, 0.4); }
       .bench-section {
         margin-top: 12px;
       }
@@ -1270,85 +1241,185 @@
         var pitch = document.createElement("div");
         pitch.className = "pitch-container";
 
-        var pitchHtml = '<div class="pitch">';
-        pitchHtml += '<div class="pitch-goal-area top"></div>';
-        pitchHtml += '<div class="pitch-goal-area bottom"></div>';
-        pitchHtml += '<div class="pitch-goal-net top"></div>';
-        pitchHtml += '<div class="pitch-goal-net bottom"></div>';
-        pitchHtml += '<div class="pitch-goal top"></div>';
-        pitchHtml += '<div class="pitch-goal bottom"></div>';
-        pitchHtml += '<div class="pitch-center-line"></div>';
-        pitchHtml += '<div class="pitch-center-circle"></div>';
-        pitchHtml += '<div class="pitch-center-spot"></div>';
-        pitchHtml += '<div class="pitch-penalty top"></div>';
-        pitchHtml += '<div class="pitch-penalty bottom"></div>';
+        // ── FPL Official team→code mapping (2024-25 base codes)
+        var teamCodeMap = {
+          'Arsenal':        3,
+          'Aston Villa':    7,
+          'Bournemouth':   91,
+          'Brentford':     94,
+          'Brighton':      36,
+          'Chelsea':        8,
+          'Crystal Palace': 31,
+          'Everton':       11,
+          'Fulham':        54,
+          'Ipswich':       40,
+          'Leeds':          2,
+          'Leicester':     13,
+          'Liverpool':     14,
+          'Man City':      43,
+          'Man Utd':        1,
+          'Newcastle':      4,
+          "Nott'm Forest": 17,
+          'Southampton':   20,
+          'Spurs':          6,
+          'West Ham':      21,
+          'Wolves':        39,
+          'Burnley':       90,
+          'Luton':         98,
+          'Sheffield Utd': 49
+        };
 
-        function addCard(p, topPct, leftPct, cls) {
-          var shortName = p.name.split(" ").pop();
-          var xpVal = p.predicted_points || 0;
-          var xpColor = xpVal >= 6 ? "#ffd93d" : xpVal >= 4 ? "#6bcb77" : xpVal >= 2 ? "#4ecdc4" : "#aaa";
-          pitchHtml +=
-            '<div class="player-card player-' +
-            cls +
-            '" style="top:' +
-            topPct +
-            "%;left:" +
-            leftPct +
-            '%;" onmouseenter="showTooltip(event,\'' +
-            p.name.replace(/'/g, "\\'") +
-            "','" +
-            p.team +
-            "','" +
-            p.position +
-            "'," +
-            p.cost +
-            "," +
-            p.predicted_points +
-            "," +
-            p.fixture_difficulty +
-            "," +
-            (p.base_xp || 0) +
-            ')" onmouseleave="hideTooltip()">';
-          pitchHtml += '<div class="card-pos">' + p.position + "</div>";
-          pitchHtml += '<div class="card-name">' + shortName + "</div>";
-          pitchHtml += '<div class="card-team">' + p.team + "</div>";
-          pitchHtml += '<div class="card-xp-section">';
-          pitchHtml += '<div class="card-xp-value" style="color:' + xpColor + '">' + xpVal.toFixed(1) + '</div>';
-          pitchHtml += '<div class="card-xp-label">xP</div>';
-          pitchHtml += "</div>";
-          pitchHtml += '<div class="card-stats">';
-          pitchHtml +=
-            '<div class="card-stat"><div class="val">£' +
-            (p.cost / 10).toFixed(1) +
-            '</div><div class="lbl">Cost</div></div>';
-          pitchHtml +=
-            '<div class="card-stat"><div class="val">' +
-            p.fixture_difficulty +
-            '</div><div class="lbl">Diff</div></div>';
-          pitchHtml += "</div>";
-          pitchHtml += "</div>";
+        // Team colors for SVG fallback
+        var teamColorMap = {
+          'Arsenal':        { body:'#EF0107', sleeve:'#063672' },
+          'Aston Villa':    { body:'#95BFE5', sleeve:'#670E36' },
+          'Bournemouth':    { body:'#DA291C', sleeve:'#000000' },
+          'Brentford':      { body:'#e30613', sleeve:'#ffffff' },
+          'Brighton':       { body:'#0057B8', sleeve:'#ffffff' },
+          'Chelsea':        { body:'#034694', sleeve:'#034694' },
+          'Crystal Palace': { body:'#1B458F', sleeve:'#C4122E' },
+          'Everton':        { body:'#003399', sleeve:'#003399' },
+          'Fulham':         { body:'#ffffff', sleeve:'#000000' },
+          'Ipswich':        { body:'#0044A9', sleeve:'#0044A9' },
+          'Leeds':          { body:'#ffffff', sleeve:'#1D428A' },
+          'Leicester':      { body:'#003090', sleeve:'#fdbe11' },
+          'Liverpool':      { body:'#C8102E', sleeve:'#00B2A9' },
+          'Man City':       { body:'#6CABDD', sleeve:'#1C2C5B' },
+          'Man Utd':        { body:'#DA291C', sleeve:'#FBE122' },
+          'Newcastle':      { body:'#241F20', sleeve:'#ffffff' },
+          "Nott'm Forest": { body:'#DD0000', sleeve:'#DD0000' },
+          'Southampton':    { body:'#D71920', sleeve:'#ffffff' },
+          'Spurs':          { body:'#ffffff', sleeve:'#ffffff' },
+          'West Ham':       { body:'#7A263A', sleeve:'#1BB1E7' },
+          'Wolves':         { body:'#FDB913', sleeve:'#231F20' }
+        };
+
+        function jerseyFallbackSvg(team, isGk) {
+          var col = teamColorMap[team] || { body:'#888888', sleeve:'#cccccc' };
+          var b = col.body, s = col.sleeve;
+          // Slightly lighter colour for GK
+          if (isGk) { b = '#f5c518'; s = '#c09010'; }
+          return '<svg class="card-jersey-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 52">'
+            + '<path d="M20 3 L7 10 L3 20 L14 23 L14 49 L44 49 L44 23 L55 20 L51 10 L38 3 C35 8 29 10 29 10 C29 10 23 8 20 3 Z" fill="' + b + '" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>'
+            + '<path d="M3 20 L14 23 L14 30 L3 27 Z" fill="' + s + '" opacity="0.7"/>'
+            + '<path d="M55 20 L44 23 L44 30 L55 27 Z" fill="' + s + '" opacity="0.7"/>'
+            + '</svg>';
         }
 
-        if (gkp.length > 0) addCard(gkp[0], 88, 50, "gkp");
+        function jerseyHtml(team, isGk) {
+          var code = teamCodeMap[team];
+          if (!code) return jerseyFallbackSvg(team, isGk);
+          var suffix = isGk ? '_1' : '';
+          var url = 'https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_' + code + suffix + '-110.png';
+          var fallbackFn = "this.outerHTML=jerseyFallbackSvg('" + team.replace(/'/g,"\\'") + "'," + (isGk?'true':'false') + ")";
+          return '<img class="card-jersey" src="' + url + '" onerror="' + fallbackFn + '" alt="" />';
+        }
+
+        var pitchHtml = '<div class="pitch">';
+        // Markings
+        pitchHtml += '<div class="pitch-goal top"></div>';
+        pitchHtml += '<div class="pitch-goal bottom"></div>';
+        pitchHtml += '<div class="pitch-penalty top"></div>';
+        pitchHtml += '<div class="pitch-penalty bottom"></div>';
+        pitchHtml += '<div class="pitch-halfway"></div>';
+        pitchHtml += '<div class="pitch-center-circle"></div>';
+        pitchHtml += '<div class="pitch-center-spot"></div>';
+        // GW banner + FPL logos
+        pitchHtml += '<div class="pitch-fpl-logo left">⚽ Fantasy</div>';
+        pitchHtml += '<div class="pitch-fpl-logo right">Fantasy ⚽</div>';
+        pitchHtml += '<div class="pitch-gw-banner">Gameweek ' + currentGW + '</div>';
+
+         // Team abbreviation dictionary for FPL-style opponent shortcuts
+         var teamAbbrev = {
+           'Arsenal': 'ARS',
+           'Aston Villa': 'AVL',
+           'Bournemouth': 'BOU',
+           'Brentford': 'BRE',
+           'Brighton': 'BHA',
+           'Chelsea': 'CHE',
+           'Crystal Palace': 'CRY',
+           'Everton': 'EVE',
+           'Fulham': 'FUL',
+           'Ipswich': 'IPS',
+           'Ipswich Town': 'IPS',
+           'Leicester': 'LEI',
+           'Liverpool': 'LIV',
+           'Man City': 'MCI',
+           'Man Utd': 'MUN',
+           'Newcastle': 'NEW',
+           "Nott'm Forest": 'NFO',
+           'Southampton': 'SOU',
+           'Spurs': 'TOT',
+           'West Ham': 'WHU',
+           'Wolves': 'WOL',
+           'Sunderland': 'SUN',
+           'Coventry City': 'COV',
+           'Burnley': 'BUR',
+           'Luton': 'LUT',
+           'Sheffield Utd': 'SHU',
+           'Leeds': 'LEE',
+           'Hull City': 'HUL'
+         };
+
+        function addCard(p, topPct, leftPct, cls) {
+          var parts = p.name.trim().split(' ');
+          var shortName = parts[parts.length - 1];
+          if (shortName.length > 10) shortName = shortName.substring(0, 10);
+          var xpVal = p.predicted_points || 0;
+          var xpStr = xpVal.toFixed(1);
+          var price = '\u00a3' + (p.cost / 10).toFixed(1) + 'm';
+          var isGk = (p.position === 'GKP');
+
+          // Look up opponent from allData using player ID
+          var oppStr = '';
+          if (window.allData && window.allData.length > 0) {
+            var playerDetails = window.allData.find(function(item) {
+              return parseInt(item.id) === parseInt(p.id);
+            });
+            if (playerDetails) {
+              var oppName = playerDetails.gw1_opponent;
+              var isHome = playerDetails.gw1_home === '1.0' || playerDetails.gw1_home === '1';
+              var oppCode = teamAbbrev[oppName] || oppName;
+              if (oppCode) {
+                oppStr = ' · ' + oppCode + (isHome ? ' (H)' : ' (A)');
+              }
+            }
+          }
+
+          pitchHtml +=
+            '<div class="player-card" style="top:' + topPct + '%;left:' + leftPct + '%;"'
+            + ' onmouseenter="showTooltip(event,\''
+            + p.name.replace(/'/g, "\\'") + "','" + p.team + "','" + p.position
+            + "'," + p.cost + "," + p.predicted_points + "," + p.fixture_difficulty
+            + "," + (p.base_xp || 0)
+            + ')" onmouseleave="hideTooltip()">';
+          pitchHtml += '<div class="card-xp-badge">' + xpStr + '</div>';
+          pitchHtml += jerseyHtml(p.team, isGk);
+          pitchHtml += '<div class="card-name-bar"><span class="card-name">' + shortName + '</span><span class="card-price">' + price + oppStr + '</span></div>';
+          pitchHtml += '</div>';
+        }
+
+        // FPL order: GKP top, DEF, MID, FWD at bottom
+        if (gkp.length > 0) addCard(gkp[0], 13, 50, 'gkp');
 
         if (def.length > 0) {
-          var defSpacing = 84 / (def.length + 1);
+          var defSpacing = 90 / (def.length + 1);
           def.forEach(function (p, i) {
-            addCard(p, 62, 8 + defSpacing * (i + 1), "def");
+            addCard(p, 33, 5 + defSpacing * (i + 1), 'def');
           });
         }
 
         if (mid.length > 0) {
-          var midSpacing = 84 / (mid.length + 1);
+          var midSpacing = 90 / (mid.length + 1);
           mid.forEach(function (p, i) {
-            addCard(p, 36, 8 + midSpacing * (i + 1), "mid");
+            addCard(p, 56, 5 + midSpacing * (i + 1), 'mid');
           });
         }
 
         if (fwd.length > 0) {
-          var fwdSpacing = 84 / (fwd.length + 1);
+          var fwdSpacing = 90 / (fwd.length + 1);
           fwd.forEach(function (p, i) {
-            addCard(p, 14, 8 + fwdSpacing * (i + 1), "fwd");
+            addCard(p, 79, 5 + fwdSpacing * (i + 1), 'fwd');
           });
         }
 
