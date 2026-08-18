@@ -1,0 +1,1427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FPL GW Predictor - Lineup Viewer</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #0a0a1a;
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+      .header {
+        background: linear-gradient(
+          135deg,
+          #0a1628 0%,
+          #1a1a2e 50%,
+          #0a1628 100%
+        );
+        padding: 14px 24px;
+        border-bottom: 2px solid #00d4ff33;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .header h1 {
+        color: #00d4ff;
+        font-size: 1.3em;
+        letter-spacing: 0.5px;
+      }
+      .header .subtitle {
+        color: #555;
+        font-size: 0.75em;
+      }
+      .header .badge {
+        background: #00d4ff22;
+        color: #00d4ff;
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 0.7em;
+        border: 1px solid #00d4ff44;
+      }
+      .gw-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 24px;
+        background: #0a0a1a;
+        border-bottom: 1px solid #1a1a3e;
+      }
+      .gw-nav button {
+        background: #0f3460;
+        border: 1px solid #1a1a3e;
+        color: #e0e0e0;
+        padding: 5px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.8em;
+        transition: all 0.2s;
+      }
+      .gw-nav button:hover {
+        border-color: #00d4ff66;
+      }
+      .gw-nav button:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .gw-nav .gw-label {
+        font-size: 0.95em;
+        font-weight: 700;
+        color: #00d4ff;
+        min-width: 50px;
+        text-align: center;
+      }
+      .gw-nav .gw-info {
+        font-size: 0.7em;
+        color: #555;
+        margin-left: 6px;
+      }
+      .tabs {
+        display: flex;
+        gap: 2px;
+        padding: 0 24px;
+        background: #0a0a1a;
+        border-bottom: 2px solid #1a1a3e;
+      }
+      .tab {
+        padding: 8px 20px;
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        color: #555;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: all 0.2s;
+        position: relative;
+      }
+      .tab:hover {
+        color: #aaa;
+      }
+      .tab.active {
+        color: #00d4ff;
+      }
+      .tab.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #00d4ff;
+        border-radius: 2px 2px 0 0;
+      }
+      .panel {
+        display: none;
+        padding: 16px 24px;
+      }
+      .panel.active {
+        display: block;
+      }
+      .stats {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .stat-card {
+        background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+        border-radius: 8px;
+        padding: 10px 18px;
+        min-width: 120px;
+        text-align: center;
+        border: 1px solid #1a1a3e;
+      }
+      .stat-card .label {
+        font-size: 0.6em;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .stat-card .value {
+        font-size: 1.3em;
+        font-weight: 700;
+        color: #00d4ff;
+        margin-top: 2px;
+      }
+      .stat-card .sub {
+        font-size: 0.65em;
+        color: #777;
+        margin-top: 1px;
+      }
+      .search-box {
+        width: 100%;
+        padding: 7px 10px;
+        background: #0f3460;
+        border: 1px solid #1a1a3e;
+        border-radius: 5px;
+        color: #e0e0e0;
+        font-size: 0.82em;
+        margin-bottom: 12px;
+      }
+      .search-box::placeholder {
+        color: #555;
+      }
+      .filter-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .filter-row label {
+        font-size: 0.7em;
+        color: #777;
+        font-weight: 500;
+      }
+      .filter-row select,
+      .filter-row input {
+        background: #0f3460;
+        border: 1px solid #1a1a3e;
+        border-radius: 4px;
+        color: #e0e0e0;
+        padding: 5px 8px;
+        font-size: 0.78em;
+      }
+      .filter-row select:focus,
+      .filter-row input:focus {
+        outline: none;
+        border-color: #00d4ff55;
+      }
+      .pitch-container {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+        filter: drop-shadow(0 15px 35px rgba(0, 212, 255, 0.2));
+      }
+      .pitch {
+        position: relative;
+        width: 100%;
+        padding-bottom: 145%;
+        background: radial-gradient(circle at center, rgba(10, 10, 26, 0.15) 0%, rgba(5, 5, 12, 0.85) 100%), url('stadium_pitch.png') no-repeat center/cover;
+        border: 2px solid rgba(0, 212, 255, 0.35);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 40px rgba(0, 212, 255, 0.15);
+      }
+      .pitch-center-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 1.5px;
+        background: rgba(0, 212, 255, 0.15);
+        transform: translateX(-50%);
+      }
+      .pitch-center-circle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 60px;
+        border: 1.5px solid rgba(0, 212, 255, 0.15);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .pitch-center-spot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        background: rgba(0, 212, 255, 0.25);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .pitch-goal-area {
+        position: relative;
+        height: 0px;
+      }
+      .pitch-goal {
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        height: 6px;
+        background: #00d4ff33;
+        border: 1.5px solid rgba(0, 212, 255, 0.4);
+        border-radius: 2px;
+      }
+      .pitch-goal.top {
+        top: -2px;
+      }
+      .pitch-goal.bottom {
+        bottom: -2px;
+      }
+      .pitch-goal-net {
+        display: none;
+      }
+      .pitch-penalty {
+        position: absolute;
+        left: 6%;
+        right: 6%;
+        height: 25%;
+        border: 1.5px solid rgba(0, 212, 255, 0.15);
+      }
+      .pitch-penalty.top {
+        top: 0;
+        border-radius: 0 0 45% 45%;
+      }
+      .pitch-penalty.bottom {
+        bottom: 0;
+        border-radius: 45% 45% 0 0;
+      }
+      .player-card {
+        position: absolute;
+        width: 86px;
+        border-radius: 12px;
+        padding: 8px 4px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        z-index: 2;
+        background: rgba(22, 33, 62, 0.55);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      .player-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: 12px 12px 0 0;
+      }
+      .player-card:hover {
+        transform: translate(-50%, -50%) scale(1.12);
+        z-index: 10;
+        background: rgba(22, 33, 62, 0.75);
+        border-color: rgba(0, 212, 255, 0.4);
+      }
+      .player-card .card-pos {
+        font-size: 0.5em;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 2px;
+        font-weight: 700;
+      }
+      .player-card .card-name {
+        font-size: 0.72em;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 78px;
+        text-align: center;
+        color: #ffffff;
+        margin-bottom: 1px;
+      }
+      .player-card .card-team {
+        font-size: 0.55em;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+      .card-xp-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 90%;
+        padding: 2px 0;
+        margin: 2px 0;
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .card-xp-value {
+        font-size: 1.05em;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .card-xp-label {
+        font-size: 0.42em;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        opacity: 0.5;
+        margin-top: 1px;
+        font-weight: 600;
+      }
+      .player-card .card-stats {
+        display: flex;
+        gap: 2px;
+        font-size: 0.58em;
+        margin-top: 2px;
+        width: 100%;
+        justify-content: space-around;
+      }
+      .player-card .card-stat {
+        text-align: center;
+        flex: 1;
+      }
+      .player-card .card-stat .val {
+        font-weight: 700;
+        font-size: 0.85em;
+        line-height: 1.2;
+        color: #ffffff;
+      }
+      .player-card .card-stat .lbl {
+        font-size: 0.7em;
+        color: rgba(255, 255, 255, 0.45);
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+      }
+      /* Glassmorphism theme settings */
+      .player-gkp {
+        box-shadow: 0 4px 15px rgba(78, 205, 196, 0.15);
+      }
+      .player-gkp::before {
+        background: linear-gradient(90deg, #4ecdc4, #2ea8a0);
+      }
+      .player-def {
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.15);
+      }
+      .player-def::before {
+        background: linear-gradient(90deg, #ff6b6b, #e05555);
+      }
+      .player-mid {
+        box-shadow: 0 4px 15px rgba(255, 217, 61, 0.15);
+      }
+      .player-mid::before {
+        background: linear-gradient(90deg, #ffd93d, #e0c030);
+      }
+      .player-fwd {
+        box-shadow: 0 4px 15px rgba(107, 203, 119, 0.15);
+      }
+      .player-fwd::before {
+        background: linear-gradient(90deg, #6bcb77, #55b065);
+      }
+      .player-gkp:hover {
+        box-shadow: 0 8px 25px rgba(78, 205, 196, 0.35);
+        border-color: rgba(78, 205, 196, 0.5);
+      }
+      .player-def:hover {
+        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.35);
+        border-color: rgba(255, 107, 107, 0.5);
+      }
+      .player-mid:hover {
+        box-shadow: 0 8px 25px rgba(255, 217, 61, 0.35);
+        border-color: rgba(255, 217, 61, 0.5);
+      }
+      .player-fwd:hover {
+        box-shadow: 0 8px 25px rgba(107, 203, 119, 0.35);
+        border-color: rgba(107, 203, 119, 0.5);
+      }
+      .player-gkp .card-pos { color: #4ecdc4; }
+      .player-def .card-pos { color: #ff6b6b; }
+      .player-mid .card-pos { color: #ffd93d; }
+      .player-fwd .card-pos { color: #6bcb77; }
+      .player-gkp .card-xp-value { color: #4ecdc4; text-shadow: 0 0 6px rgba(78, 205, 196, 0.4); }
+      .player-def .card-xp-value { color: #ff6b6b; text-shadow: 0 0 6px rgba(255, 107, 107, 0.4); }
+      .player-mid .card-xp-value { color: #ffd93d; text-shadow: 0 0 6px rgba(255, 217, 61, 0.4); }
+      .player-fwd .card-xp-value { color: #6bcb77; text-shadow: 0 0 6px rgba(107, 203, 119, 0.4); }
+      .bench-section {
+        margin-top: 12px;
+      }
+      .bench-section h3 {
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 6px;
+      }
+      .bench-grid {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .bench-card {
+        background: rgba(15, 52, 96, 0.5);
+        border-radius: 8px;
+        padding: 10px 14px;
+        border: 1px solid #1a1a3e;
+        font-size: 0.75em;
+        min-width: 110px;
+        transition: all 0.2s;
+        backdrop-filter: blur(4px);
+      }
+      .bench-card:hover {
+        border-color: #00d4ff44;
+        background: rgba(15, 52, 96, 0.7);
+      }
+      .bench-card .bname {
+        font-weight: 600;
+      }
+      .bench-card .bpos {
+        color: #777;
+        font-size: 0.7em;
+      }
+      .bench-card .bpts {
+        color: #00d4ff;
+        font-weight: 600;
+      }
+      .lineup-summary {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .lineup-summary .stat {
+        background: #0f3460;
+        border-radius: 6px;
+        padding: 8px 14px;
+        border: 1px solid #1a1a3e;
+      }
+      .lineup-summary .stat .val {
+        font-size: 1.1em;
+        font-weight: 700;
+        color: #00d4ff;
+      }
+      .lineup-summary .stat .lbl {
+        font-size: 0.6em;
+        color: #777;
+        text-transform: uppercase;
+      }
+      .formation-label {
+        text-align: center;
+        color: #444;
+        font-size: 0.75em;
+        margin-top: 12px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        font-weight: 600;
+        padding: 8px 14px;
+        background: rgba(15, 52, 96, 0.4);
+        border-radius: 6px;
+        border: 1px solid #1a1a3e;
+        display: inline-block;
+        margin-left: auto;
+        margin-right: auto;
+        width: fit-content;
+      }
+      .tooltip {
+        position: fixed;
+        background: #16213e;
+        border: 1px solid #00d4ff44;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.8em;
+        z-index: 1000;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        display: none;
+        min-width: 180px;
+      }
+      .tooltip .tt-name {
+        font-weight: 700;
+        font-size: 0.95em;
+        margin-bottom: 5px;
+        color: #fff;
+      }
+      .tooltip .tt-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 1px 0;
+        font-size: 0.8em;
+      }
+      .tooltip .tt-label {
+        color: #777;
+      }
+      .tooltip .tt-value {
+        color: #e0e0e0;
+        font-weight: 600;
+      }
+      .tooltip .tt-pos {
+        display: inline-block;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 0.65em;
+        font-weight: 600;
+      }
+      .no-data {
+        text-align: center;
+        padding: 30px;
+        color: #444;
+        font-size: 1em;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82em;
+      }
+      thead th {
+        background: #16213e;
+        color: #00d4ff;
+        padding: 8px 10px;
+        text-align: left;
+        border-bottom: 2px solid #1a1a3e;
+        font-weight: 600;
+        font-size: 0.85em;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      thead th:hover {
+        background: #1a3a5e;
+      }
+      thead th.sorted {
+        background: #1a3a5e;
+      }
+      .sort-icon {
+        font-size: 0.7em;
+        margin-left: 3px;
+      }
+      tbody td {
+        padding: 6px 10px;
+        border-bottom: 1px solid #1a1a3e;
+        color: #ccc;
+      }
+      tbody tr:hover {
+        background: #0f346044;
+      }
+      tbody tr:nth-child(even) {
+        background: #0a0a1a88;
+      }
+      tbody tr:nth-child(even):hover {
+        background: #0f346066;
+      }
+      .pos-gkp {
+        color: #4ecdc4;
+        font-weight: 600;
+      }
+      .pos-def {
+        color: #ff6b6b;
+        font-weight: 600;
+      }
+      .pos-mid {
+        color: #ffd93d;
+        font-weight: 600;
+      }
+      .pos-fwd {
+        color: #6bcb77;
+        font-weight: 600;
+      }
+      .injury-ok {
+        color: #6bcb77;
+      }
+      .injury-minor {
+        color: #ffd93d;
+      }
+      .injury-doubt {
+        color: #ff9f43;
+      }
+      .injury-out {
+        color: #ff6b6b;
+      }
+      .page-info {
+        margin-top: 10px;
+        font-size: 0.75em;
+        color: #555;
+        text-align: center;
+      }
+      .page-btn {
+        background: #0f3460;
+        border: 1px solid #1a1a3e;
+        color: #e0e0e0;
+        padding: 4px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8em;
+        margin: 0 2px;
+      }
+      .page-btn:hover {
+        border-color: #00d4ff66;
+      }
+      .page-btn:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .table-wrapper {
+        overflow-x: auto;
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1>⚽ FPL GW Predictor</h1>
+        <div class="subtitle">Fantasy Premier League 2026-27 · ML-Powered xP Analytics</div>
+      </div>
+      <div class="badge" id="header-badge">GW1 · 563 Players</div>
+    </div>
+
+    <div class="gw-nav">
+      <button id="btn-prev" onclick="changeGW(-1)" disabled>← Prev</button>
+      <span class="gw-label" id="gw-label">GW1</span>
+      <span class="gw-info" id="gw-info">2026-27</span>
+      <button id="btn-next" onclick="changeGW(1)">Next →</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('lineup')">Lineup</div>
+      <div class="tab" onclick="switchTab('all')">All Players</div>
+      <div class="tab" onclick="switchTab('predictions')">Predictions</div>
+    </div>
+
+    <div id="panel-lineup" class="panel active">
+      <div class="lineup-summary" id="lineup-stats"></div>
+      <div id="lineup-content"></div>
+    </div>
+
+    <div id="panel-all" class="panel">
+      <div class="stats" id="all-stats"></div>
+      <input
+        type="text"
+        class="search-box"
+        id="all-search"
+        placeholder="Search by name, team, position..."
+        oninput="filterTable('all')"
+      />
+      <div class="filter-row">
+        <label>Pos:</label>
+        <select id="all-pos-filter" onchange="filterTable('all')">
+          <option value="">All</option>
+          <option value="GKP">GKP</option>
+          <option value="DEF">DEF</option>
+          <option value="MID">MID</option>
+          <option value="FWD">FWD</option>
+        </select>
+        <label>Team:</label>
+        <select id="all-team-filter" onchange="filterTable('all')"></select>
+        <label>Min Pts:</label>
+        <input
+          type="number"
+          id="all-min-xp"
+          step="0.1"
+          min="0"
+          max="15"
+          value="0"
+          style="width: 70px"
+          onchange="filterTable('all')"
+        />
+        <label>Sort:</label>
+        <select id="all-sort" onchange="filterTable('all')">
+          <option value="predicted_points">xP (Pred)</option>
+          <option value="base_xp">Base xP</option>
+          <option value="now_cost">Cost</option>
+          <option value="web_name">Name</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table id="all-table">
+          <thead>
+            <tr></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="page-info" id="all-page"></div>
+    </div>
+
+    <div id="panel-predictions" class="panel">
+      <div class="stats" id="pred-stats"></div>
+      <input
+        type="text"
+        class="search-box"
+        id="pred-search"
+        placeholder="Search by name, team, position..."
+        oninput="filterTable('predictions')"
+      />
+      <div class="filter-row">
+        <label>Pos:</label>
+        <select id="pred-pos-filter" onchange="filterTable('predictions')">
+          <option value="">All</option>
+          <option value="GKP">GKP</option>
+          <option value="DEF">DEF</option>
+          <option value="MID">MID</option>
+          <option value="FWD">FWD</option>
+        </select>
+        <label>Team:</label>
+        <select
+          id="pred-team-filter"
+          onchange="filterTable('predictions')"
+        ></select>
+        <label>Min Pts:</label>
+        <input
+          type="number"
+          id="pred-min-pts"
+          step="0.1"
+          min="0"
+          max="15"
+          value="0"
+          style="width: 80px"
+          onchange="filterTable('predictions')"
+        />
+        <label>Sort:</label>
+        <select id="pred-sort" onchange="filterTable('predictions')">
+          <option value="predicted_points">xP (Pred)</option>
+          <option value="base_xp">Base xP</option>
+          <option value="now_cost">Cost</option>
+          <option value="gw1_difficulty">Diff</option>
+          <option value="web_name">Name</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table id="pred-table">
+          <thead>
+            <tr></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="page-info" id="pred-page"></div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+      var allData = [];
+      var predData = [];
+      var lineupData = null;
+      var currentGW = 1;
+      var maxGW = 38;
+      var currentSort = { col: "predicted_points", dir: -1 };
+      var pageSize = 50;
+      var currentPage = {};
+
+      function switchTab(tab) {
+        document.querySelectorAll(".tab").forEach(function (t) {
+          t.classList.remove("active");
+        });
+        document.querySelectorAll(".panel").forEach(function (p) {
+          p.classList.remove("active");
+        });
+        event.target.classList.add("active");
+        document.getElementById("panel-" + tab).classList.add("active");
+      }
+
+      function changeGW(delta) {
+        var newGW = currentGW + delta;
+        if (newGW < 1 || newGW > maxGW) return;
+        currentGW = newGW;
+        updateGWNav();
+        loadGWData();
+      }
+
+      function updateGWNav() {
+        document.getElementById("gw-label").textContent = "GW" + currentGW;
+        document.getElementById("btn-prev").disabled = currentGW <= 1;
+        document.getElementById("btn-next").disabled = currentGW >= maxGW;
+        document.getElementById("header-badge").textContent =
+          "GW" + currentGW + " · 563 Players";
+      }
+
+      function loadGWData() {
+        document.getElementById("lineup-content").innerHTML =
+          '<div class="no-data">Loading GW' + currentGW + " lineup...</div>";
+        document.getElementById("all-stats").innerHTML =
+          '<div class="no-data">Loading GW' + currentGW + "...</div>";
+        document.getElementById("pred-stats").innerHTML =
+          '<div class="no-data">Loading GW' + currentGW + "...</div>";
+
+        fetch("output/all_players_gw" + currentGW + ".csv?t=" + Date.now())
+          .then(function (r) {
+            if (!r.ok) throw new Error("Not found");
+            return r.text();
+          })
+          .then(function (text) {
+            allData = parseCSV(text);
+            populateFilters("all");
+            populateFilters("pred");
+            renderAll();
+          })
+          .catch(function () {
+            allData = [];
+          });
+
+        fetch("output/predictions_gw" + currentGW + ".csv?t=" + Date.now())
+          .then(function (r) {
+            if (!r.ok) throw new Error("Not found");
+            return r.text();
+          })
+          .then(function (text) {
+            predData = parseCSV(text);
+            renderPredictions();
+          })
+          .catch(function () {
+            predData = [];
+          });
+
+        fetch("output/lineup_gw" + currentGW + ".json?t=" + Date.now())
+          .then(function (r) {
+            if (!r.ok) throw new Error("Not found");
+            return r.json();
+          })
+          .then(function (data) {
+            lineupData = data;
+            renderLineup();
+          })
+          .catch(function () {
+            lineupData = null;
+          });
+      }
+
+      function parseCSV(text) {
+        var lines = text.trim().split("\n");
+        var headers = lines[0].split(",");
+        var rows = [];
+        for (var i = 1; i < lines.length; i++) {
+          var vals = parseCSVLine(lines[i]);
+          var row = {};
+          headers.forEach(function (h, idx) {
+            row[h.trim()] = (vals[idx] || "").trim();
+          });
+          rows.push(row);
+        }
+        return rows;
+      }
+
+      function parseCSVLine(line) {
+        var result = [];
+        var current = "";
+        var inQuotes = false;
+        for (var i = 0; i < line.length; i++) {
+          var ch = line[i];
+          if (ch === '"') {
+            inQuotes = !inQuotes;
+          } else if (ch === "," && !inQuotes) {
+            result.push(current);
+            current = "";
+          } else {
+            current += ch;
+          }
+        }
+        result.push(current);
+        return result;
+      }
+
+      function populateFilters(prefix) {
+        var teams = [];
+        var data = prefix === "all" ? allData : predData;
+        data.forEach(function (r) {
+          if (teams.indexOf(r.team_name) === -1) teams.push(r.team_name);
+        });
+        teams.sort();
+        var sel = document.getElementById(prefix + "-team-filter");
+        sel.innerHTML = '<option value="">All Teams</option>';
+        teams.forEach(function (t) {
+          var opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          sel.appendChild(opt);
+        });
+      }
+
+      function getFilteredData(prefix) {
+        var data = prefix === "all" ? allData : predData;
+        var search = (
+          document.getElementById(prefix + "-search").value || ""
+        ).toLowerCase();
+        var posFilter = document.getElementById(prefix + "-pos-filter").value;
+        var teamFilter = document.getElementById(prefix + "-team-filter").value;
+        var minVal =
+          parseFloat(
+            document.getElementById(
+              prefix + (prefix === "all" ? "-min-xp" : "-min-pts"),
+            ).value,
+          ) || 0;
+        return data.filter(function (r) {
+          if (search) {
+            var hay = (
+              r.web_name +
+              " " +
+              r.team_name +
+              " " +
+              r.position +
+              " " +
+              (r.first_name || "") +
+              " " +
+              (r.second_name || "")
+            ).toLowerCase();
+            if (hay.indexOf(search) === -1) return false;
+          }
+          if (posFilter && r.position !== posFilter) return false;
+          if (teamFilter && r.team_name !== teamFilter) return false;
+          var val = parseFloat(r.predicted_points) || 0;
+          if (val < minVal) return false;
+          return true;
+        });
+      }
+
+      function sortData(data, col, dir) {
+        var posOrder = { GKP: 0, DEF: 1, MID: 2, FWD: 3 };
+        var teamFilter =
+          document.getElementById("all-team-filter").value ||
+          document.getElementById("pred-team-filter").value;
+        return data.slice().sort(function (a, b) {
+          if (teamFilter) {
+            var pa = posOrder[a.position] || 9;
+            var pb = posOrder[b.position] || 9;
+            if (pa !== pb) return pa - pb;
+          }
+          var va = parseFloat(a[col]);
+          var vb = parseFloat(b[col]);
+          if (isNaN(va)) va = 0;
+          if (isNaN(vb)) vb = 0;
+          if (col === "web_name" || col === "team_name" || col === "position") {
+            var sa = (a[col] || "").toLowerCase();
+            var sb = (b[col] || "").toLowerCase();
+            return dir * sa.localeCompare(sb);
+          }
+          return dir * (va - vb);
+        });
+      }
+
+      function renderTable(prefix, data, cols) {
+        var thead = document.querySelector("#" + prefix + "-table thead tr");
+        var tbody = document.querySelector("#" + prefix + "-table tbody");
+        thead.innerHTML = "";
+        tbody.innerHTML = "";
+        cols.forEach(function (c) {
+          var th = document.createElement("th");
+          var icon = "";
+          if (currentSort.col === c.key) {
+            icon = currentSort.dir === 1 ? " ▲" : " ▼";
+            th.classList.add("sorted");
+          }
+          th.innerHTML =
+            c.label + '<span class="sort-icon">' + icon + "</span>";
+          if (
+            c.key === "now_cost" ||
+            c.key === "predicted_points" ||
+            c.key === "base_xp"
+          ) {
+            th.style.textAlign = "right";
+          }
+          th.onclick = function () {
+            if (currentSort.col === c.key) {
+              currentSort.dir *= -1;
+            } else {
+              currentSort.col = c.key;
+              currentSort.dir = -1;
+            }
+            currentPage[prefix] = 1;
+            renderTableContent(prefix, data, cols);
+          };
+          thead.appendChild(th);
+        });
+        renderTableContent(prefix, data, cols);
+      }
+
+      function renderTableContent(prefix, data, cols) {
+        var tbody = document.querySelector("#" + prefix + "-table tbody");
+        var sortCol = currentSort.col;
+        var sortDir = currentSort.dir;
+        var sorted = sortData(data, sortCol, sortDir);
+        var page = currentPage[prefix] || 1;
+        var totalPages = Math.ceil(sorted.length / pageSize) || 1;
+        var start = (page - 1) * pageSize;
+        var end = Math.min(start + pageSize, sorted.length);
+        var pageData = sorted.slice(start, end);
+
+        pageData.forEach(function (r) {
+          var tr = document.createElement("tr");
+          cols.forEach(function (c) {
+            var td = document.createElement("td");
+            var val = r[c.key] || "";
+            if (c.key === "position") {
+              td.className = "pos-" + val.toLowerCase();
+            }
+            if (c.key === "injury_status") {
+              var sev = parseInt(val);
+              td.className =
+                sev === 0
+                  ? "injury-ok"
+                  : sev <= 1
+                    ? "injury-minor"
+                    : sev === 2
+                      ? "injury-doubt"
+                      : "injury-out";
+              var labels = { 0: "OK", 1: "Minor", 2: "Doubt", 3: "OUT" };
+              val = labels[sev] || val;
+            }
+            if (
+              c.key === "now_cost" ||
+              c.key === "predicted_points" ||
+              c.key === "base_xp"
+            ) {
+              var num = parseFloat(val);
+              if (!isNaN(num)) {
+                td.style.textAlign = "right";
+                if (c.key === "now_cost") {
+                  td.textContent = (num / 10).toFixed(1);
+                } else {
+                  td.textContent = num.toFixed(2);
+                }
+              } else {
+                td.textContent = val;
+              }
+            } else if (c.key === "first_name" || c.key === "second_name") {
+              td.textContent = val;
+            } else {
+              td.textContent = val;
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        var pageInfo = document.getElementById(prefix + "-page");
+        pageInfo.textContent =
+          "Showing " +
+          (start + 1) +
+          "-" +
+          end +
+          " of " +
+          sorted.length +
+          " | Page " +
+          page +
+          "/" +
+          totalPages;
+        pageInfo.innerHTML +=
+          ' <button class="page-btn" onclick="goPage(\'' +
+          prefix +
+          "'," +
+          (page - 1) +
+          ')"' +
+          (page <= 1 ? " disabled" : "") +
+          '>Prev</button> <button class="page-btn" onclick="goPage(\'' +
+          prefix +
+          "'," +
+          (page + 1) +
+          ')"' +
+          (page >= totalPages ? " disabled" : "") +
+          ">Next</button>";
+      }
+
+      function goPage(prefix, page) {
+        currentPage[prefix] = page;
+        var data = getFilteredData(prefix);
+        var cols = prefix === "all" ? allCols : predCols;
+        renderTableContent(prefix, data, cols);
+      }
+
+      function filterTable(prefix) {
+        currentPage[prefix] = 1;
+        var data = getFilteredData(prefix);
+        var cols = prefix === "all" ? allCols : predCols;
+        renderTable(prefix, data, cols);
+      }
+
+       var allCols = [
+         { key: "web_name", label: "Name" },
+         { key: "position", label: "Pos" },
+         { key: "team_name", label: "Team" },
+         { key: "now_cost", label: "Cost" },
+         { key: "predicted_points", label: "xP (Pred)" },
+         { key: "base_xp", label: "Base xP" },
+         { key: "gw1_opponent", label: "Opponent" },
+         { key: "gw1_difficulty", label: "Diff" },
+         { key: "injury_status", label: "Injury" },
+       ];
+
+       var predCols = [
+         { key: "web_name", label: "Name" },
+         { key: "position", label: "Pos" },
+         { key: "team_name", label: "Team" },
+         { key: "now_cost", label: "Cost" },
+         { key: "predicted_points", label: "xP (Pred)" },
+         { key: "base_xp", label: "Base xP" },
+         { key: "gw1_opponent", label: "Opponent" },
+         { key: "gw1_difficulty", label: "Diff" },
+         { key: "gw1_home", label: "Home" },
+         { key: "injury_status", label: "Injury" },
+         { key: "injury_news", label: "News" },
+       ];
+
+      function renderAll() {
+        if (!allData.length) {
+          document.getElementById("all-stats").innerHTML =
+            '<div class="no-data">No data for GW' + currentGW + "</div>";
+          return;
+        }
+        var data = getFilteredData("all");
+        var totalPred = data.reduce(function (s, r) {
+          return s + (parseFloat(r.predicted_points) || 0);
+        }, 0);
+        var avgPred = data.length ? (totalPred / data.length).toFixed(2) : 0;
+        var maxPred = data.length
+          ? Math.max
+              .apply(
+                null,
+                data.map(function (r) {
+                  return parseFloat(r.predicted_points) || 0;
+                }),
+              )
+              .toFixed(2)
+          : 0;
+        document.getElementById("all-stats").innerHTML =
+          '<div class="stat-card"><div class="label">Total</div><div class="value">' +
+          allData.length +
+          "</div></div>" +
+          '<div class="stat-card"><div class="label">Filtered</div><div class="value">' +
+          data.length +
+          "</div></div>" +
+          '<div class="stat-card"><div class="label">Max</div><div class="value">' +
+          maxPred +
+          "</div></div>" +
+          '<div class="stat-card"><div class="label">Avg</div><div class="value">' +
+          avgPred +
+          "</div></div>";
+        renderTable("all", data, allCols);
+      }
+
+      function renderPredictions() {
+        if (!predData.length) {
+          document.getElementById("pred-stats").innerHTML =
+            '<div class="no-data">No data for GW' + currentGW + "</div>";
+          return;
+        }
+        var data = getFilteredData("pred");
+        var totalPred = data.reduce(function (s, r) {
+          return s + (parseFloat(r.predicted_points) || 0);
+        }, 0);
+        var avgPred = data.length ? (totalPred / data.length).toFixed(2) : 0;
+        var maxPred = data.length
+          ? Math.max
+              .apply(
+                null,
+                data.map(function (r) {
+                  return parseFloat(r.predicted_points) || 0;
+                }),
+              )
+              .toFixed(2)
+          : 0;
+        document.getElementById("pred-stats").innerHTML =
+          '<div class="stat-card"><div class="label">Total</div><div class="value">' +
+          predData.length +
+          "</div></div>" +
+          '<div class="stat-card"><div class="label">Filtered</div><div class="value">' +
+          data.length +
+          "</div></div>" +
+          '<div class="stat-card"><div class="label">Max</div><div class="value">' +
+          maxPred +
+          "</div></div>" +
+          '<div class="stat-card"><div class="label">Avg</div><div class="value">' +
+          avgPred +
+          "</div></div>";
+        renderTable("pred", data, predCols);
+      }
+
+      function renderLineup() {
+        if (!lineupData || !lineupData.lineup) {
+          document.getElementById("lineup-content").innerHTML =
+            '<div class="no-data">No lineup for GW' + currentGW + "</div>";
+          return;
+        }
+         var stats = document.getElementById("lineup-stats");
+         var totalXp = lineupData.lineup.reduce(function (s, p) {
+           return s + (p.predicted_points || 0);
+         }, 0);
+         stats.innerHTML =
+           '<div class="stat"><div class="val">£' +
+           (lineupData.total_cost / 10).toFixed(1) +
+           'm</div><div class="lbl">Total Cost</div></div>' +
+           '<div class="stat"><div class="val" style="color:#ffd93d">' +
+           totalXp.toFixed(1) +
+           '</div><div class="lbl">Total xP</div></div>' +
+           '<div class="stat"><div class="val">£' +
+           (lineupData.budget_remaining / 10).toFixed(1) +
+           'm</div><div class="lbl">Budget Left</div></div>' +
+           '<div class="stat"><div class="val">' +
+           lineupData.lineup.length +
+           '</div><div class="lbl">Players</div></div>';
+
+        var container = document.getElementById("lineup-content");
+        container.innerHTML = "";
+
+        var gkp = lineupData.lineup.filter(function (p) {
+          return p.position === "GKP";
+        });
+        var def = lineupData.lineup.filter(function (p) {
+          return p.position === "DEF";
+        });
+        var mid = lineupData.lineup.filter(function (p) {
+          return p.position === "MID";
+        });
+        var fwd = lineupData.lineup.filter(function (p) {
+          return p.position === "FWD";
+        });
+
+        var pitch = document.createElement("div");
+        pitch.className = "pitch-container";
+
+        var pitchHtml = '<div class="pitch">';
+        pitchHtml += '<div class="pitch-goal-area top"></div>';
+        pitchHtml += '<div class="pitch-goal-area bottom"></div>';
+        pitchHtml += '<div class="pitch-goal-net top"></div>';
+        pitchHtml += '<div class="pitch-goal-net bottom"></div>';
+        pitchHtml += '<div class="pitch-goal top"></div>';
+        pitchHtml += '<div class="pitch-goal bottom"></div>';
+        pitchHtml += '<div class="pitch-center-line"></div>';
+        pitchHtml += '<div class="pitch-center-circle"></div>';
+        pitchHtml += '<div class="pitch-center-spot"></div>';
+        pitchHtml += '<div class="pitch-penalty top"></div>';
+        pitchHtml += '<div class="pitch-penalty bottom"></div>';
+
+        function addCard(p, topPct, leftPct, cls) {
+          var shortName = p.name.split(" ").pop();
+          var xpVal = p.predicted_points || 0;
+          var xpColor = xpVal >= 6 ? "#ffd93d" : xpVal >= 4 ? "#6bcb77" : xpVal >= 2 ? "#4ecdc4" : "#aaa";
+          pitchHtml +=
+            '<div class="player-card player-' +
+            cls +
+            '" style="top:' +
+            topPct +
+            "%;left:" +
+            leftPct +
+            '%;" onmouseenter="showTooltip(event,\'' +
+            p.name.replace(/'/g, "\\'") +
+            "','" +
+            p.team +
+            "','" +
+            p.position +
+            "'," +
+            p.cost +
+            "," +
+            p.predicted_points +
+            "," +
+            p.fixture_difficulty +
+            "," +
+            (p.base_xp || 0) +
+            ')" onmouseleave="hideTooltip()">';
+          pitchHtml += '<div class="card-pos">' + p.position + "</div>";
+          pitchHtml += '<div class="card-name">' + shortName + "</div>";
+          pitchHtml += '<div class="card-team">' + p.team + "</div>";
+          pitchHtml += '<div class="card-xp-section">';
+          pitchHtml += '<div class="card-xp-value" style="color:' + xpColor + '">' + xpVal.toFixed(1) + '</div>';
+          pitchHtml += '<div class="card-xp-label">xP</div>';
+          pitchHtml += "</div>";
+          pitchHtml += '<div class="card-stats">';
+          pitchHtml +=
+            '<div class="card-stat"><div class="val">£' +
+            (p.cost / 10).toFixed(1) +
+            '</div><div class="lbl">Cost</div></div>';
+          pitchHtml +=
+            '<div class="card-stat"><div class="val">' +
+            p.fixture_difficulty +
+            '</div><div class="lbl">Diff</div></div>';
+          pitchHtml += "</div>";
+          pitchHtml += "</div>";
+        }
+
+        if (gkp.length > 0) addCard(gkp[0], 88, 50, "gkp");
+
+        if (def.length > 0) {
+          var defSpacing = 84 / (def.length + 1);
+          def.forEach(function (p, i) {
+            addCard(p, 62, 8 + defSpacing * (i + 1), "def");
+          });
+        }
+
+        if (mid.length > 0) {
+          var midSpacing = 84 / (mid.length + 1);
+          mid.forEach(function (p, i) {
+            addCard(p, 36, 8 + midSpacing * (i + 1), "mid");
+          });
+        }
+
+        if (fwd.length > 0) {
+          var fwdSpacing = 84 / (fwd.length + 1);
+          fwd.forEach(function (p, i) {
+            addCard(p, 14, 8 + fwdSpacing * (i + 1), "fwd");
+          });
+        }
+
+        pitchHtml += "</div>";
+        pitch.innerHTML = pitchHtml;
+        container.appendChild(pitch);
+
+        var formationLabel = document.createElement("div");
+        formationLabel.className = "formation-label";
+        var formationStr = gkp.length + "-" + def.length + "-" + mid.length + "-" + fwd.length;
+        formationLabel.innerHTML =
+          '<span style="color:#00d4ff;font-weight:700">' +
+          formationStr +
+          '</span> Formation &nbsp;·&nbsp; ' +
+          '<span style="color:#ffd93d">' +
+          lineupData.lineup.length +
+          '</span> Players &nbsp;·&nbsp; ' +
+          '<span style="color:#6bcb77">£' +
+          (lineupData.total_cost / 10).toFixed(1) +
+          'm</span> Budget';
+        container.appendChild(formationLabel);
+      }
+
+       function showTooltip(e, name, team, pos, cost, pts, diff, baseXp) {
+         var tt = document.getElementById("tooltip");
+         var posColors = {
+           GKP: "#4ecdc4",
+           DEF: "#ff6b6b",
+           MID: "#ffd93d",
+           FWD: "#6bcb77",
+         };
+         var xpColor = pts >= 6 ? "#ffd93d" : pts >= 4 ? "#6bcb77" : pts >= 2 ? "#4ecdc4" : "#aaa";
+         tt.innerHTML =
+           '<div class="tt-name">' +
+           name +
+           "</div>" +
+           '<div class="tt-row"><span class="tt-label">Team</span><span class="tt-value">' +
+           team +
+           "</span></div>" +
+           '<div class="tt-row"><span class="tt-label">Position</span><span class="tt-value"><span class="tt-pos" style="background:' +
+           (posColors[pos] || "#888") +
+           "33;color:" +
+           (posColors[pos] || "#888") +
+           '">' +
+           pos +
+           "</span></span></div>" +
+           '<div class="tt-row"><span class="tt-label">Cost</span><span class="tt-value">£' +
+           (cost / 10).toFixed(1) +
+           "m</span></div>" +
+           '<div class="tt-row"><span class="tt-label" style="color:#ffd93d">xP (Predicted)</span><span class="tt-value" style="color:' +
+           xpColor +
+           ';font-weight:700">' +
+           pts.toFixed(2) +
+           "</span></div>" +
+           '<div class="tt-row"><span class="tt-label">Base xP</span><span class="tt-value">' +
+           baseXp.toFixed(2) +
+           "</span></div>" +
+           '<div class="tt-row"><span class="tt-label">Fixture Diff</span><span class="tt-value">' +
+           diff +
+           "</span></div>";
+         tt.style.display = "block";
+         tt.style.left = e.clientX + 14 + "px";
+         tt.style.top = e.clientY - 8 + "px";
+       }
+
+      function hideTooltip() {
+        document.getElementById("tooltip").style.display = "none";
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        updateGWNav();
+        loadGWData();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Logs
+*.log
+
+# Generated prediction output
+output/
+
+# Large / downloadable data (regenerate with the fetch scripts)
+data/summaries/
+data/*.csv
+data/meta.json
+
+# IDE
+.vscode/
+.idea/
