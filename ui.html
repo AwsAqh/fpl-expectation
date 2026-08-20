@@ -258,16 +258,16 @@
       /* GW banner inside pitch */
       .pitch-gw-banner {
         position: absolute;
-        top: 2%;
+        top: 1.2%;
         left: 50%;
         transform: translateX(-50%);
         background: linear-gradient(135deg, #37003c 0%, #150017 100%);
         color: #00ff87;
         font-family: 'Outfit', sans-serif;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 800;
-        padding: 6px 28px;
-        border-radius: 20px;
+        padding: 4px 20px;
+        border-radius: 16px;
         letter-spacing: 0.8px;
         white-space: nowrap;
         z-index: 5;
@@ -1501,7 +1501,7 @@
         }
 
         // FPL order: GKP top, DEF, MID, FWD at bottom
-        if (gkp.length > 0) addCard(gkp[0], 12, 50, 'gkp');
+        if (gkp.length > 0) addCard(gkp[0], 16, 50, 'gkp');
 
         if (def.length > 0) {
           var defSpacing = 90 / (def.length + 1);
