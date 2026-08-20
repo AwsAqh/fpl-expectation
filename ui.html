@@ -353,7 +353,7 @@
       /* === Official FPL Player Card === */
       .player-card {
         position: absolute;
-        width: 96px;
+        width: 86px;
         border-radius: 8px;
         padding: 4px 0 0;
         display: flex;
@@ -374,15 +374,15 @@
       }
       /* Jersey image */
       .card-jersey {
-        width: 68px;
-        height: 60px;
+        width: 64px;
+        height: 56px;
         object-fit: contain;
         display: block;
         filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
       }
       .card-jersey-svg {
-        width: 68px;
-        height: 60px;
+        width: 64px;
+        height: 56px;
         filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
       }
       /* Name bar (dark purple, bold high contrast) */
@@ -390,7 +390,7 @@
         background: #240046;
         width: 100%;
         margin-top: 3px;
-        padding: 5px 4px 4px;
+        padding: 5px 3px 4px;
         text-align: center;
         border-radius: 7px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.6);
@@ -398,12 +398,12 @@
       }
       .card-name-bar .card-name {
         font-family: 'Outfit', sans-serif;
-        font-size: 0.88rem;
+        font-size: 0.84rem;
         font-weight: 800;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 88px;
+        max-width: 80px;
         color: #ffffff;
         display: block;
         letter-spacing: 0.3px;
@@ -411,30 +411,32 @@
       }
       .card-name-bar .card-price {
         font-family: 'Inter', sans-serif;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         color: #00ff87;
         font-weight: 700;
         display: block;
         margin-top: 1px;
       }
       
-      /* ACCESSIBLE HIGH-VISIBILITY xP POINTS BADGE */
+      /* ACCESSIBLE HIGH-VISIBILITY xP POINTS BADGE (CENTERED TO PREVENT PEER OVERLAP) */
       .card-xp-badge {
         position: absolute;
-        top: -6px;
-        right: -2px;
-        background: linear-gradient(135deg, #37003c 0%, #00ff87 100%);
-        color: #ffffff;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #37003c 0%, #150017 100%);
+        color: #00ff87;
         font-family: 'Outfit', sans-serif;
         font-size: 0.82rem;
         font-weight: 900;
-        padding: 2px 7px;
+        padding: 2px 8px;
         border-radius: 12px;
         line-height: 1.2;
-        border: 2px solid #ffffff;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+        border: 1.5px solid #00ff87;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.7);
         letter-spacing: 0.3px;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        white-space: nowrap;
+        z-index: 5;
       }
 
       .lineup-summary {
