@@ -28,6 +28,7 @@ def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, boots
     """
     Construct the feature matrix X for active players for upcoming Gameweek `target_gw`.
     Blends historical rolling statistics with current season element stats.
+    Includes opponent/fixture features and market signals to match the training pipeline.
     """
     df = elements_df.copy()
     
@@ -53,18 +54,155 @@ def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, boots
     # 2. Fixture home/away and difficulty match context
     gw_fixtures = fixtures_df[fixtures_df["event"] == target_gw] if "event" in fixtures_df.columns else pd.DataFrame()
     team_home_map = {}
+    team_opponent_map = {}
     if not gw_fixtures.empty:
         for _, f in gw_fixtures.iterrows():
             team_home_map[f["team_h"]] = 1
             team_home_map[f["team_a"]] = 0
+            team_opponent_map[f["team_h"]] = f["team_a"]
+            team_opponent_map[f["team_a"]] = f["team_h"]
             
     df["was_home"] = df["team"].map(team_home_map).fillna(1).astype(int)
+    df["opponent_team_id"] = df["team"].map(team_opponent_map)
+    
+    # ========== OPPONENT / FIXTURE FEATURES (NEW) ==========
+    # Build team strength lookup from bootstrap teams data
+    teams_data = bootstrap.get("teams", [])
+    teams_df_bootstrap = pd.DataFrame(teams_data)
+    
+    # Normalize team strengths to match training scale:
+    # Training uses rolling goals conceded/scored (roughly 0-3 range per GW)
+    # Bootstrap has strength values (roughly 1000-1400 range)
+    # We normalize bootstrap strengths to a 0-3 scale to roughly align
+    team_strength = {}
+    for _, t in teams_df_bootstrap.iterrows():
+        tid = t["id"]
+        # Compute normalized attack/defence strength (scale ~1000-1400 → ~0-3)
+        strength = t.get("strength") or 3
+        s_attack_h = t.get("strength_attack_home") or 1200
+        s_attack_a = t.get("strength_attack_away") or 1200
+        s_def_h = t.get("strength_defence_home") or 1200
+        s_def_a = t.get("strength_defence_away") or 1200
+        
+        # Normalize: higher strength → higher value, range roughly 0.5-3.0
+        attack_avg = (s_attack_h + s_attack_a) / 2.0
+        def_avg = (s_def_h + s_def_a) / 2.0
+        
+        team_strength[tid] = {
+            "attack_norm": attack_avg / 800.0,   # ~1.2-1.8 range
+            "defence_norm": def_avg / 800.0,      # ~1.2-1.8 range
+            "overall": strength / 3.0,             # ~1-2 range
+        }
+    
+    # For each player, create opponent & own team features
+    opp_attack_list = []
+    opp_conceded_list = []
+    opp_cs_rate_list = []
+    opp_xg_list = []
+    opp_xgc_list = []
+    own_attack_list = []
+    own_defence_list = []
+    own_cs_list = []
+    
+    # Also try to compute from current season summaries if available
+    # Aggregate team-level stats from all player summaries for the current season
+    summaries_dir = os.path.join(DATA_DIR, "summaries")
+    team_season_stats = {}  # team_id -> {goals_scored, goals_conceded, clean_sheets, ...}
+    
+    for elem in bootstrap.get("elements", []):
+        pid = elem["id"]
+        team_id = elem["team"]
+        summary_file = os.path.join(summaries_dir, f"{pid}.json")
+        if os.path.exists(summary_file):
+            try:
+                with open(summary_file, "r") as sf:
+                    sdata = json.load(sf)
+                    history = sdata.get("history", [])
+                    if history:
+                        if team_id not in team_season_stats:
+                            team_season_stats[team_id] = {"goals": [], "conceded": [], "cs": [], "xg": [], "xgc": []}
+                        for h in history[-5:]:  # last 5 GWs
+                            team_season_stats[team_id]["goals"].append(float(h.get("goals_scored", 0)))
+                            team_season_stats[team_id]["conceded"].append(float(h.get("goals_conceded", 0)))
+                            team_season_stats[team_id]["cs"].append(float(h.get("clean_sheets", 0)))
+                            team_season_stats[team_id]["xg"].append(float(h.get("expected_goals", 0) or 0))
+                            team_season_stats[team_id]["xgc"].append(float(h.get("expected_goals_conceded", 0) or 0))
+            except Exception:
+                pass
+    
+    # Compute team averages from current season data
+    team_avg_stats = {}
+    for tid, stats in team_season_stats.items():
+        team_avg_stats[tid] = {
+            "avg_goals": np.mean(stats["goals"]) if stats["goals"] else 1.0,
+            "avg_conceded": np.mean(stats["conceded"]) if stats["conceded"] else 1.0,
+            "avg_cs": np.mean(stats["cs"]) if stats["cs"] else 0.3,
+            "avg_xg": np.mean(stats["xg"]) if stats["xg"] else 0.5,
+            "avg_xgc": np.mean(stats["xgc"]) if stats["xgc"] else 0.5,
+        }
+    
+    for idx, row in df.iterrows():
+        opp_id = row.get("opponent_team_id")
+        own_id = row.get("team")
+        
+        # Opponent features: how strong is the opponent?
+        if pd.notna(opp_id) and int(opp_id) in team_avg_stats:
+            opp_stats = team_avg_stats[int(opp_id)]
+            opp_attack_list.append(opp_stats["avg_goals"])       # opp_attack_strength
+            opp_conceded_list.append(opp_stats["avg_conceded"])  # opp_goals_conceded_roll5
+            opp_cs_rate_list.append(opp_stats["avg_cs"])         # opp_cs_rate_roll5
+            opp_xg_list.append(opp_stats["avg_xg"])              # opp_xg_roll5
+            opp_xgc_list.append(opp_stats["avg_xgc"])            # opp_xgc_roll5
+        elif pd.notna(opp_id) and int(opp_id) in team_strength:
+            # Fallback to bootstrap strength if no season data
+            ts = team_strength[int(opp_id)]
+            opp_attack_list.append(ts["attack_norm"])
+            opp_conceded_list.append(ts["defence_norm"])
+            opp_cs_rate_list.append(0.3)
+            opp_xg_list.append(ts["attack_norm"] * 0.5)
+            opp_xgc_list.append(ts["defence_norm"] * 0.5)
+        else:
+            opp_attack_list.append(1.0)
+            opp_conceded_list.append(1.0)
+            opp_cs_rate_list.append(0.3)
+            opp_xg_list.append(0.5)
+            opp_xgc_list.append(0.5)
+        
+        # Own team features
+        if own_id in team_avg_stats:
+            own_stats = team_avg_stats[own_id]
+            own_attack_list.append(own_stats["avg_goals"])
+            own_defence_list.append(own_stats["avg_conceded"])
+            own_cs_list.append(own_stats["avg_cs"])
+        elif own_id in team_strength:
+            ts = team_strength[own_id]
+            own_attack_list.append(ts["attack_norm"])
+            own_defence_list.append(ts["defence_norm"])
+            own_cs_list.append(0.3)
+        else:
+            own_attack_list.append(1.0)
+            own_defence_list.append(1.0)
+            own_cs_list.append(0.3)
+    
+    df["opp_attack_strength"] = opp_attack_list
+    df["opp_goals_conceded_roll5"] = opp_conceded_list
+    df["opp_cs_rate_roll5"] = opp_cs_rate_list
+    df["opp_xg_roll5"] = opp_xg_list
+    df["opp_xgc_roll5"] = opp_xgc_list
+    df["own_team_attack_roll5"] = own_attack_list
+    df["own_team_defence_roll5"] = own_defence_list
+    df["own_team_cs_rate_roll5"] = own_cs_list
+    
+    # ========== MARKET / CROWD WISDOM FEATURES (NEW) ==========
+    df["selected_log"] = np.log1p(pd.to_numeric(df["selected_by_percent"].fillna(0), errors="coerce").fillna(0) * 100000)
+    df["transfers_balance_norm"] = (
+        pd.to_numeric(df.get("transfers_in_event", pd.Series(0, index=df.index)), errors="coerce").fillna(0)
+        - pd.to_numeric(df.get("transfers_out_event", pd.Series(0, index=df.index)), errors="coerce").fillna(0)
+    ) / 10000.0
     
     # 3. Match historical player stats to compute rolling averages
-    # Create player lookup dictionary from historical datasets
     hist_stats = {}
     if hist_df is not None and not hist_df.empty:
-        # Group by name/element to get last known rolling form
         hist_df_sorted = hist_df.sort_values(by=["season", "GW"])
         for name, group in hist_df_sorted.groupby("name"):
             last_10 = group.tail(10)
@@ -117,7 +255,6 @@ def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, boots
         df[col] = default_val
 
     # Map matched stats per player
-    summaries_dir = os.path.join(DATA_DIR, "summaries")
     for idx, row in df.iterrows():
         pid = row.get("id")
         web_name = row.get("web_name", "").lower().strip()
@@ -137,7 +274,6 @@ def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, boots
                 current_season_history = []
 
         if current_season_history and len(current_season_history) > 0:
-            # Player has played in current season! Calculate rolling stats from current season matches
             c_df = pd.DataFrame(current_season_history)
             for c_col in ["minutes", "total_points", "expected_goals", "expected_assists", "bps", "ict_index", "influence", "creativity", "threat"]:
                 if c_col in c_df.columns:
