@@ -218,7 +218,9 @@ class FPLOptimizer:
             total_predicted += r.get("predicted_points", 0)
             lineup.append({
                 "id": int(pid),
-                "name": f"{r.get('first_name', '')} {r.get('second_name', '')}".strip(),
+                "name": r.get("web_name") or f"{r.get('first_name', '')} {r.get('second_name', '')}".strip(),
+                "web_name": r.get("web_name", ""),
+                "full_name": f"{r.get('first_name', '')} {r.get('second_name', '')}".strip(),
                 "position": r.get("position", ""),
                 "team": r.get("team_name", ""),
                 "cost": float(r["now_cost"]),
