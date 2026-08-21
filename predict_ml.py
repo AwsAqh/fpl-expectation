@@ -10,18 +10,25 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 
 def load_model_and_metadata():
-    """Load trained LightGBM model and feature metadata."""
-    model_path = os.path.join(MODELS_DIR, "fpl_lgbm_model.joblib")
+    """Load trained Stacking Ensemble (or LightGBM fallback) and feature metadata."""
+    ensemble_path = os.path.join(MODELS_DIR, "fpl_ensemble_models.joblib")
+    lgb_path = os.path.join(MODELS_DIR, "fpl_lgbm_model.joblib")
     meta_path = os.path.join(MODELS_DIR, "model_metadata.json")
     
-    if not os.path.exists(model_path) or not os.path.exists(meta_path):
-        raise FileNotFoundError("Trained ML model or metadata missing in models/ directory. Run train_model.py first.")
+    if not os.path.exists(meta_path):
+        raise FileNotFoundError("Trained metadata missing in models/ directory. Run train_model.py first.")
         
-    model = joblib.load(model_path)
     with open(meta_path, "r") as f:
         metadata = json.load(f)
+
+    if os.path.exists(ensemble_path):
+        model_obj = joblib.load(ensemble_path)
+    elif os.path.exists(lgb_path):
+        model_obj = joblib.load(lgb_path)
+    else:
+        raise FileNotFoundError("No trained model found in models/ directory.")
         
-    return model, metadata
+    return model_obj, metadata
 
 
 def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, bootstrap):
@@ -368,10 +375,10 @@ def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, boots
 
 def predict_points_with_ml(elements_df, hist_df, fixtures_df, target_gw, bootstrap):
     """
-    Run LightGBM ML model predictions for all players.
+    Run Stacking Ensemble ML model predictions (LightGBM + CatBoost + XGBoost + Ridge) for all players.
     Returns elements_df enriched with 'predicted_points' and 'base_xp'.
     """
-    model, metadata = load_model_and_metadata()
+    model_obj, metadata = load_model_and_metadata()
     feature_cols = metadata["feature_cols"]
     
     df = build_inference_features(elements_df, hist_df, fixtures_df, target_gw, bootstrap)
@@ -381,9 +388,17 @@ def predict_points_with_ml(elements_df, hist_df, fixtures_df, target_gw, bootstr
     for col in X.columns:
         X[col] = pd.to_numeric(X[col], errors="coerce").fillna(0.0)
         
-    # Generate ML predictions
-    predictions = model.predict(X)
-    df["predicted_points"] = predictions
-    df["base_xp"] = df["xP_roll3"]
+    # Generate predictions using Ensemble (or single model fallback)
+    if isinstance(model_obj, dict) and "lgb" in model_obj and "meta" in model_obj:
+        p_lgb = model_obj["lgb"].predict(X)
+        p_cat = model_obj["cat"].predict(X)
+        p_xgb = model_obj["xgb"].predict(X)
+        X_meta = np.column_stack([p_lgb, p_cat, p_xgb])
+        predictions = model_obj["meta"].predict(X_meta)
+    else:
+        predictions = model_obj.predict(X)
+
+    df["predicted_points"] = np.round(predictions, 2)
+    df["base_xp"] = np.round(df["xP_roll3"], 2)
     
     return df

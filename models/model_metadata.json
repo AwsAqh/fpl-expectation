@@ -1,11 +1,16 @@
 {
-  "model_type": "LightGBMRegressor",
-  "mae_2023_24": 1.613545120500155,
-  "rmse_2023_24": 2.526362462800338,
-  "r2_2023_24": 0.1884881627012508,
+  "model_type": "StackingEnsemble (LGBM + CatBoost + XGBoost + Ridge)",
+  "mae_2023_24": 1.6111223477857235,
+  "rmse_2023_24": 2.5232164944410242,
+  "r2_2023_24": 0.19050798451014483,
   "baseline_mae": 1.8982356042109265,
-  "spearman_correlation": 0.568082803767594,
-  "top50_precision": 3,
+  "spearman_correlation": 0.5703939980429323,
+  "meta_weights": [
+    0.3780165774880799,
+    0.06615894668916829,
+    0.5514007960107733
+  ],
+  "top50_precision": 2,
   "feature_cols": [
     "is_gk",
     "is_def",
