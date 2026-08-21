@@ -283,7 +283,7 @@ def main():
         return None
 
     predictions_path = os.path.join(OUTPUT_DIR, f"predictions_gw{target_gw}.csv")
-    full_df[["id", "position", "team_name",
+    full_df[["id", "first_name", "second_name", "web_name", "position", "team_name",
              "now_cost", "predicted_points", "base_xp",
              "gw1_difficulty", "gw1_home", "gw1_opponent",
              "injury_status", "injury_news"]].to_csv(
