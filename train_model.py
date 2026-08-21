@@ -126,7 +126,7 @@ def build_rolling_features(df):
     rolling_metrics = [
         "minutes", "total_points", "expected_goals", "expected_assists",
         "bps", "ict_index", "influence", "creativity", "threat",
-        "goals_scored", "assists", "clean_sheets", "bonus", "xP"
+        "goals_scored", "assists", "clean_sheets", "goals_conceded", "saves", "bonus", "xP"
     ]
     
     grouped = df.groupby(["season", "element"])
@@ -168,7 +168,44 @@ def build_rolling_features(df):
     df["was_home"] = df["was_home"].astype(int)
     df["cost_millions"] = df["value"] / 10.0
     
-    # ========== 4. MARKET / CROWD WISDOM FEATURES ==========
+    # ========== 4. DEFENSIVE CONTRIBUTION (DEFCON) FEATURES ==========
+    # Estimate pure defensive actions (tackles, interceptions, clearances, blocks, recoveries)
+    # by subtracting offensive bonus triggers (goals: ~24 BPS, assists: ~9 BPS) from BPS roll5
+    non_offensive_bps = np.maximum(0.0, df["bps_roll5"] - (df["goals_scored_roll5"] * 24.0 + df["assists_roll5"] * 9.0))
+    df["defcon_est_roll5"] = non_offensive_bps * 0.65
+    
+    # Position-Specific DefCon Bonus Rules:
+    # - Defenders (DEF): +4 points per 10 DefCon (0.40 pts / DefCon)
+    # - Midfielders (MID): +2 points per 12 DefCon (0.167 pts / DefCon)
+    # - Goalkeepers (GKP): +1 point per 3 saves
+    # - Forwards (FWD): 0 DefCon bonus
+    defcon_bonus = np.zeros(len(df))
+    def_mask = df["position"] == "DEF"
+    mid_mask = df["position"] == "MID"
+    gk_mask = df["position"] == "GK"
+    
+    defcon_bonus[def_mask] = 4.0 * (df.loc[def_mask, "defcon_est_roll5"] / 10.0)
+    defcon_bonus[mid_mask] = 2.0 * (df.loc[mid_mask, "defcon_est_roll5"] / 12.0)
+    defcon_bonus[gk_mask]  = 1.0 * (df.loc[gk_mask, "saves_roll5"] / 3.0)
+    
+    df["defcon_points_bonus"] = defcon_bonus
+    
+    # Clean Sheet Poisson Probability (xCS = exp(-xGC))
+    df["xcs_prob"] = np.exp(-np.clip(df["own_team_xgc_roll5"], 0.0, 5.0))
+    
+    # Per-90 Defensive metrics
+    df["gc_per_90_roll5"] = np.where(
+        df["minutes_roll5"] > 0,
+        (df["goals_conceded_roll5"] / df["minutes_roll5"]) * 90.0,
+        0.0
+    )
+    df["saves_per_90_roll5"] = np.where(
+        df["minutes_roll5"] > 0,
+        (df["saves_roll5"] / df["minutes_roll5"]) * 90.0,
+        0.0
+    )
+
+    # ========== 5. MARKET / CROWD WISDOM FEATURES ==========
     df["selected_log"] = np.log1p(df["selected"].fillna(0))
     df["transfers_balance_norm"] = df["transfers_balance"].fillna(0) / 10000.0
     
@@ -203,6 +240,8 @@ def train_and_evaluate():
         "opp_attack_strength", "opp_goals_conceded_roll5", "opp_cs_rate_roll5",
         "opp_xg_roll5", "opp_xgc_roll5",
         "own_team_attack_roll5", "own_team_defence_roll5", "own_team_cs_rate_roll5",
+        # Defensive Contribution (DefCon) features (NEW)
+        "defcon_est_roll5", "defcon_points_bonus", "xcs_prob", "gc_per_90_roll5", "saves_per_90_roll5",
         "selected_log", "transfers_balance_norm",
     ]
     

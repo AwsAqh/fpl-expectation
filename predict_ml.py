@@ -359,14 +359,33 @@ def build_inference_features(elements_df, hist_df, fixtures_df, target_gw, boots
         1.0
     )
     
-    df["xg_per_90_roll5"] = np.where(
+    # ========== DefCon Features in Inference ==========
+    non_offensive_bps = np.maximum(0.0, df.get("bps_roll5", 0.0) - (df.get("goals_scored_roll5", 0.0) * 24.0 + df.get("expected_assists_roll5", 0.0) * 9.0))
+    df["defcon_est_roll5"] = non_offensive_bps * 0.65
+    
+    defcon_bonus = np.zeros(len(df))
+    def_mask = df["pos_cat"] == "DEF"
+    mid_mask = df["pos_cat"] == "MID"
+    gk_mask  = df["pos_cat"] == "GKP"
+    
+    defcon_bonus[def_mask] = 4.0 * (df.loc[def_mask, "defcon_est_roll5"] / 10.0)
+    defcon_bonus[mid_mask] = 2.0 * (df.loc[mid_mask, "defcon_est_roll5"] / 12.0)
+    if "saves_roll5" in df.columns:
+        defcon_bonus[gk_mask] = 1.0 * (df.loc[gk_mask, "saves_roll5"] / 3.0)
+        
+    df["defcon_points_bonus"] = defcon_bonus
+    
+    own_team_xgc = df.get("own_team_xgc_roll5", 1.2)
+    df["xcs_prob"] = np.exp(-np.clip(own_team_xgc, 0.0, 5.0))
+    
+    df["gc_per_90_roll5"] = np.where(
         df["minutes_roll5"] > 0,
-        (df["expected_goals_roll5"] / df["minutes_roll5"]) * 90.0,
+        (df.get("goals_conceded_roll5", 0.0) / df["minutes_roll5"]) * 90.0,
         0.0
     )
-    df["xa_per_90_roll5"] = np.where(
+    df["saves_per_90_roll5"] = np.where(
         df["minutes_roll5"] > 0,
-        (df["expected_assists_roll5"] / df["minutes_roll5"]) * 90.0,
+        (df.get("saves_roll5", 0.0) / df["minutes_roll5"]) * 90.0,
         0.0
     )
 
@@ -384,6 +403,10 @@ def predict_points_with_ml(elements_df, hist_df, fixtures_df, target_gw, bootstr
     df = build_inference_features(elements_df, hist_df, fixtures_df, target_gw, bootstrap)
     
     # Extract feature matrix X matching exact feature columns used during training
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = 0.0
+            
     X = df[feature_cols].copy()
     for col in X.columns:
         X[col] = pd.to_numeric(X[col], errors="coerce").fillna(0.0)
